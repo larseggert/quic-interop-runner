@@ -2,11 +2,13 @@ version: "3.5"
 
 services:
   sim:
-    image: martenseemann/quic-network-simulator
+    image: lars/qns:nat
     container_name: sim
     hostname: sim
     stdin_open: true
     tty: true
+    volumes:
+      - $KEYLOG:/logs/keys:ro
     environment:
       - SCENARIO=$SCENARIO
     cap_add: 
@@ -28,11 +30,12 @@ services:
     volumes:
       - $WWW:/www:ro
       - $CERTS:/certs:ro
+      - $KEYLOG:/logs/keys:delegated
     environment:
       - CRON=$CRON
       - ROLE=server
       - SERVER_PARAMS=$SERVER_PARAMS
-      - SSLKEYLOGFILE=/logs/keys.log
+      - SSLKEYLOGFILE=/logs/keys/server-keys.log
       - QLOGDIR=/logs/qlog/
       - TESTCASE=$TESTCASE_SERVER
     depends_on:
@@ -54,11 +57,12 @@ services:
     volumes:
       - $DOWNLOADS:/downloads:delegated
       - $CERTS:/certs:ro
+      - $KEYLOG:/logs/keys:delegated
     environment:
       - CRON=$CRON
       - ROLE=client
       - CLIENT_PARAMS=$CLIENT_PARAMS
-      - SSLKEYLOGFILE=/logs/keys.log
+      - SSLKEYLOGFILE=/logs/keys/client-keys.log
       - QLOGDIR=/logs/qlog/
       - TESTCASE=$TESTCASE_CLIENT
       - REQUESTS=$REQUESTS

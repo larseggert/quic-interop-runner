@@ -111,6 +111,7 @@ class InteropRunner:
             return self.compliant[name]
 
         client_log_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="logs_client_")
+        keylog_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="keylog")
         www_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="compliance_www_")
         certs_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="compliance_certs_")
         downloads_dir = tempfile.TemporaryDirectory(
@@ -126,6 +127,7 @@ class InteropRunner:
             "TESTCASE_CLIENT=" + random_string(6) + " "
             "SERVER_LOGS=/dev/null "
             "CLIENT_LOGS=" + client_log_dir.name + " "
+            "KEYLOG=" + keylog_dir.name + " "
             "WWW=" + www_dir.name + " "
             "DOWNLOADS=" + downloads_dir.name + " "
             'SCENARIO="simple-p2p --delay=15ms --bandwidth=10Mbps --queue=25" '
@@ -150,6 +152,7 @@ class InteropRunner:
             "TESTCASE_SERVER=" + random_string(6) + " "
             "SERVER_LOGS=" + server_log_dir.name + " "
             "CLIENT_LOGS=/dev/null "
+            "KEYLOG=" + keylog_dir.name + " "
             "WWW=" + www_dir.name + " "
             "DOWNLOADS=" + downloads_dir.name + " "
             "SERVER=" + self._implementations[name]["image"] + " "
@@ -315,6 +318,7 @@ class InteropRunner:
         sim_log_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="logs_sim_")
         server_log_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="logs_server_")
         client_log_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="logs_client_")
+        keylog_dir = tempfile.TemporaryDirectory(dir="/tmp", prefix="keylog")
         log_file = tempfile.NamedTemporaryFile(dir="/tmp", prefix="output_log_")
         log_handler = logging.FileHandler(log_file.name)
         log_handler.setLevel(logging.DEBUG)
@@ -347,6 +351,7 @@ class InteropRunner:
             "DOWNLOADS=" + testcase.download_dir() + " "
             "SERVER_LOGS=" + server_log_dir.name + " "
             "CLIENT_LOGS=" + client_log_dir.name + " "
+            "KEYLOG=" + keylog_dir.name + " "
             'SCENARIO="{}" '
             "CLIENT=" + self._implementations[client]["image"] + " "
             "SERVER=" + self._implementations[server]["image"] + " "

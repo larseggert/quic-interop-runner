@@ -1158,6 +1158,39 @@ class TestCaseAddressRebinding(TestCasePortRebinding):
         return TestResult.SUCCEEDED
 
 
+class TestCaseFaultyClient(TestCaseTransfer):
+    @staticmethod
+    def name():
+        return "faulty-client"
+
+    @staticmethod
+    def abbreviation():
+        return "FC"
+
+    @staticmethod
+    def testname(p: Perspective):
+        return "transfer"
+
+    @staticmethod
+    def desc():
+        return "Client packets contain decoding errors. Server ends the connection with a non-zero error code."
+
+    def get_paths(self):
+        self._files = [
+            self._generate_random_file(100 * KB),
+        ]
+        return self._files
+
+    # @staticmethod
+    def scenario(self) -> str:
+        """ Scenario for the ns3 simulator """
+        return "faulty-implementation --delay=15ms --bandwidth=10Mbps --queue=25 --ber-client=30 --ber-server=0 --client_keylog=/logs/keys/client-keys.log --server_keylog=/logs/keys/server-keys.log"
+
+    def check(self) -> TestResult:
+
+        return TestResult.SUCCEEDED
+
+
 class MeasurementGoodput(Measurement):
     FILESIZE = 10 * MB
     _result = 0.0
@@ -1269,6 +1302,7 @@ TESTCASES = [
     TestCaseTransferCorruption,
     TestCasePortRebinding,
     TestCaseAddressRebinding,
+    TestCaseFaultyClient,
 ]
 
 MEASUREMENTS = [

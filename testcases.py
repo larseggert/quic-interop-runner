@@ -628,10 +628,6 @@ class TestCaseResumption(TestCase):
 
 
 class TestCaseZeroRTT(TestCase):
-    NUM_FILES = 40
-    FILESIZE = 32  # in bytes
-    FILENAMELEN = 250
-
     @staticmethod
     def name():
         return "zerortt"
@@ -642,33 +638,66 @@ class TestCaseZeroRTT(TestCase):
 
     @staticmethod
     def desc():
-        return "0-RTT data is being sent and acted on."
+        return "0-RTT data is being sent and ACKed."
 
     def get_paths(self):
-        for _ in range(self.NUM_FILES):
-            self._files.append(
-                self._generate_random_file(self.FILESIZE, self.FILENAMELEN)
-            )
+        self._files = [
+            self._generate_random_file(1 * KB),
+            self._generate_random_file(5 * KB),
+        ]
         return self._files
 
+    def acked_pkt_nrs(self, p) -> set:
+        lg_ack = int(getattr(p, "ack.largest_acknowledged"))
+        ack_range = int(getattr(p, "ack.first_ack_range"))
+        # logging.info("range: %d - %d", lg_ack - ack_range, lg_ack)
+        nrs = set(range(lg_ack - ack_range, lg_ack + 1))
+        # logging.info("new: %s", nrs)
+
+        if int(getattr(p, "ack.ack_range_count")) > 0:
+            logging.info("Can't handle this ACK yet!")
+
+        return nrs
+
     def check(self) -> TestResult:
+        if not self._keylog_file():
+            logging.info("Can't check test result. SSLKEYLOG required.")
+            return TestResult.UNSUPPORTED
+
         num_handshakes = self._count_handshakes()
         if num_handshakes != 2:
             logging.info("Expected exactly 2 handshakes. Got: %d", num_handshakes)
             return TestResult.FAILED
+
         if not self._check_version_and_files():
             return TestResult.FAILED
+
         tr = self._client_trace()
-        zeroRTTSize = self._payload_size(tr.get_0rtt())
-        oneRTTSize = self._payload_size(tr.get_1rtt(Direction.FROM_CLIENT))
-        logging.debug("0-RTT size: %d", zeroRTTSize)
-        logging.debug("1-RTT size: %d", oneRTTSize)
-        if zeroRTTSize == 0:
+        zero_rtt_pkts = set(int(p.packet_number) for p in tr.get_0rtt())
+        if len(zero_rtt_pkts) == 0:
             logging.info("Client didn't send any 0-RTT data.")
             return TestResult.FAILED
-        if oneRTTSize > 0.5 * self.FILENAMELEN * self.NUM_FILES:
-            logging.info("Client sent too much data in 1-RTT packets.")
+
+        acked_pkts = set()
+        first_connection_ended = False
+        for p in tr.get_1rtt(Direction.FROM_SERVER):
+            # skip the first connection
+            if first_connection_ended is False:
+                if hasattr(p, "cc_error_code_app") is False:
+                    continue
+                first_connection_ended = True
+                continue
+
+            if hasattr(p, "ack.largest_acknowledged"):
+                acked_pkts |= self.acked_pkt_nrs(p)
+
+        if zero_rtt_pkts.issubset(acked_pkts) is False:
+            logging.info(
+                "0-RTT packets %s were not ACKed.", zero_rtt_pkts.difference(acked_pkts)
+            )
             return TestResult.FAILED
+
+        logging.info("All 0-RTT packets (%s) were ACKed.", zero_rtt_pkts)
         return TestResult.SUCCEEDED
 
 
@@ -1004,6 +1033,14 @@ class TestCaseTransferLoss(TestCase):
         return self._files
 
     def check(self) -> TestResult:
+        # tr = self._client_trace()
+        # for p in tr.get_1rtt(Direction.FROM_SERVER):
+        #     if hasattr(p, "ack.largest_acknowledged"):
+        #         cnt = int(getattr(p, "ack.ack_range_count"))
+        #         if cnt > 1:
+        #             logging.info(p.field_names)
+        #             logging.info(p)
+
         num_handshakes = self._count_handshakes()
         if num_handshakes != 1:
             logging.info("Expected exactly 1 handshake. Got: %d", num_handshakes)

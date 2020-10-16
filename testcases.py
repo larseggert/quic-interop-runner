@@ -687,7 +687,6 @@ class TestCaseZeroRTT(TestCase):
             # skip the first connection
             if first_connection_ended is False:
                 pkt_nr = int(getattr(p, "packet_number"))
-                logging.info(pkt_nr)
                 if pkt_nr > last_pkt_nr:
                     last_pkt_nr = pkt_nr
                     continue

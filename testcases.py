@@ -682,24 +682,28 @@ class TestCaseZeroRTT(TestCase):
 
         acked_pkts = set()
         first_connection_ended = False
+        last_pkt_nr = -1
         for p in tr.get_1rtt(Direction.FROM_SERVER):
             # skip the first connection
             if first_connection_ended is False:
-                if hasattr(p, "cc_error_code_app") is False:
+                pkt_nr = int(getattr(p, "packet_number"))
+                logging.info(pkt_nr)
+                if pkt_nr > last_pkt_nr:
+                    last_pkt_nr = pkt_nr
                     continue
                 first_connection_ended = True
-                continue
 
             if hasattr(p, "ack.largest_acknowledged"):
                 acked_pkts |= self.acked_pkt_nrs(p)
 
         if zero_rtt_pkts.issubset(acked_pkts) is False:
             logging.info(
-                "0-RTT packets %s were not ACKed.", zero_rtt_pkts.difference(acked_pkts)
+                "These 0-RTT packets were not ACKed: %s",
+                zero_rtt_pkts.difference(acked_pkts),
             )
             return TestResult.FAILED
 
-        logging.info("All 0-RTT packets (%s) were ACKed.", zero_rtt_pkts)
+        logging.debug("All 0-RTT packets (%s) were ACKed.", zero_rtt_pkts)
         return TestResult.SUCCEEDED
 
 

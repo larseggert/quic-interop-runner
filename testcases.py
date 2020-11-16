@@ -628,6 +628,10 @@ class TestCaseResumption(TestCase):
 
 
 class TestCaseZeroRTT(TestCase):
+    NUM_FILES = 40
+    FILESIZE = 32  # in bytes
+    FILENAMELEN = 250
+
     @staticmethod
     def name():
         return "zerortt"
@@ -641,21 +645,22 @@ class TestCaseZeroRTT(TestCase):
         return "0-RTT data is being sent and ACKed."
 
     def get_paths(self):
-        self._files = [
-            self._generate_random_file(1 * KB),
-            self._generate_random_file(5 * KB),
-        ]
+        for _ in range(self.NUM_FILES):
+            self._files.append(
+                self._generate_random_file(self.FILESIZE, self.FILENAMELEN)
+            )
         return self._files
 
     def acked_pkt_nrs(self, p) -> set:
         lg_ack = int(getattr(p, "ack.largest_acknowledged"))
         ack_range = int(getattr(p, "ack.first_ack_range"))
-        # logging.info("range: %d - %d", lg_ack - ack_range, lg_ack)
+        logging.info("range: %d - %d", lg_ack - ack_range, lg_ack)
         nrs = set(range(lg_ack - ack_range, lg_ack + 1))
-        # logging.info("new: %s", nrs)
+        logging.info("new: %s", nrs)
 
         if int(getattr(p, "ack.ack_range_count")) > 0:
             logging.info("Can't handle this ACK yet!")
+            logging.info(p)
 
         return nrs
 
@@ -668,10 +673,8 @@ class TestCaseZeroRTT(TestCase):
         if num_handshakes != 2:
             logging.info("Expected exactly 2 handshakes. Got: %d", num_handshakes)
             return TestResult.FAILED
-
         if not self._check_version_and_files():
             return TestResult.FAILED
-
         tr = self._client_trace()
         zero_rtt_pkts = set(int(p.packet_number) for p in tr.get_0rtt())
         if len(zero_rtt_pkts) == 0:
@@ -1036,13 +1039,13 @@ class TestCaseTransferLoss(TestCase):
         return self._files
 
     def check(self) -> TestResult:
-        # tr = self._client_trace()
-        # for p in tr.get_1rtt(Direction.FROM_SERVER):
-        #     if hasattr(p, "ack.largest_acknowledged"):
-        #         cnt = int(getattr(p, "ack.ack_range_count"))
-        #         if cnt > 1:
-        #             logging.info(p.field_names)
-        #             logging.info(p)
+        tr = self._client_trace()
+        for p in tr.get_1rtt(Direction.FROM_SERVER):
+            if hasattr(p, "ack.largest_acknowledged"):
+                cnt = int(getattr(p, "ack.ack_range_count"))
+                if cnt > 1:
+                    logging.info(p.field_names)
+                    logging.info(p)
 
         num_handshakes = self._count_handshakes()
         if num_handshakes != 1:

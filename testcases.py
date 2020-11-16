@@ -628,10 +628,6 @@ class TestCaseResumption(TestCase):
 
 
 class TestCaseZeroRTT(TestCase):
-    NUM_FILES = 40
-    FILESIZE = 32  # in bytes
-    FILENAMELEN = 250
-
     @staticmethod
     def name():
         return "zerortt"
@@ -645,10 +641,10 @@ class TestCaseZeroRTT(TestCase):
         return "0-RTT data is being sent and ACKed."
 
     def get_paths(self):
-        for _ in range(self.NUM_FILES):
-            self._files.append(
-                self._generate_random_file(self.FILESIZE, self.FILENAMELEN)
-            )
+        self._files = [
+            self._generate_random_file(1 * KB),
+            self._generate_random_file(5 * KB),
+        ]
         return self._files
 
     def acked_pkt_nrs(self, p) -> set:
@@ -661,7 +657,6 @@ class TestCaseZeroRTT(TestCase):
         if int(getattr(p, "ack.ack_range_count")) > 0:
             logging.info("Can't handle this ACK yet!")
             logging.info(p)
-
         return nrs
 
     def check(self) -> TestResult:
@@ -673,8 +668,10 @@ class TestCaseZeroRTT(TestCase):
         if num_handshakes != 2:
             logging.info("Expected exactly 2 handshakes. Got: %d", num_handshakes)
             return TestResult.FAILED
+
         if not self._check_version_and_files():
             return TestResult.FAILED
+
         tr = self._client_trace()
         zero_rtt_pkts = set(int(p.packet_number) for p in tr.get_0rtt())
         if len(zero_rtt_pkts) == 0:

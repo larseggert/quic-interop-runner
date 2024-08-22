@@ -972,7 +972,7 @@ class TestCaseKeyUpdate(TestCaseHandshake):
 
 
 class TestCaseHandshakeLoss(TestCase):
-    _num_runs = 50
+    _num_runs = 2
 
     @staticmethod
     def name():

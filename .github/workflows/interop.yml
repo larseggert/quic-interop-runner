@@ -161,7 +161,7 @@ jobs:
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      matrix: 
+      matrix:
         server: ${{ fromJson(needs.config.outputs.servers) }}
         client: ${{ fromJson(needs.config.outputs.clients) }}
     name: (${{ matrix.server }} - ${{ matrix.client }})
@@ -216,14 +216,14 @@ jobs:
         env:
           CRON: "true"
         run: |
-          (python run.py --client ${{ matrix.client }} --server ${{ matrix.server }} --log-dir logs --json ${{ matrix.server }}_${{ matrix.client }}_results.json -t onlyTests || true) | tee output.txt
+          (python run.py --client ${{ matrix.client }} --server ${{ matrix.server }} --log-dir logs --json ${{ matrix.server }}_${{ matrix.client }}_results.json -t onlyTests --no-auto-unsupported || true) | tee output.txt
           mkdir -p logs/${{ matrix.server }}_${{ matrix.client }}
           mv output.txt logs/${{ matrix.server }}_${{ matrix.client }}/
       - name: Run measurements
         env:
           CRON: "true"
         run: |
-          python run.py --client ${{ matrix.client }} --server ${{ matrix.server }} --log-dir logs_measurement --json ${{ matrix.server }}_${{ matrix.client }}_measurements.json -t onlyMeasurements || true
+          python run.py --client ${{ matrix.client }} --server ${{ matrix.server }} --log-dir logs_measurement --json ${{ matrix.server }}_${{ matrix.client }}_measurements.json -t onlyMeasurements --no-auto-unsupported || true
           if [ ! -d "logs_measurement" ]; then exit 0; fi
           find logs_measurement -depth -name "sim" -type d -exec rm -r "{}" \;
           find logs_measurement -depth -name "client" -type d -exec rm -r "{}" \;
@@ -287,7 +287,7 @@ jobs:
           remote_host: interop.seemann.io
           remote_user: ${{ secrets.INTEROP_SEEMANN_IO_USER }}
           remote_key: ${{ secrets.INTEROP_SEEMANN_IO_SSH_KEY }}
-      - name: Point interop.seemann.io to the latest result 
+      - name: Point interop.seemann.io to the latest result
         uses: appleboy/ssh-action@029f5b4aeeeb58fdfe1410a5d17f967dacf36262 # v1.0.3
         if: ${{ github.event_name == 'schedule' }}
         with:
